@@ -1,5 +1,11 @@
-const onlineUsers = new Map(); // userId -> socketId
+const onlineUsers = new Map(); // userId -> Set of socketIds
 const activeCalls = new Map(); // userId -> partnerId
+
+// Helper to get primary socket ID for a user
+function getPrimarySocketId(userId) {
+  const socketIds = onlineUsers.get(userId);
+  return socketIds && socketIds.size > 0 ? Array.from(socketIds)[0] : null;
+}
 
 function initializeSocket(io) {
   io.on('connection', (socket) => {
@@ -9,8 +15,11 @@ function initializeSocket(io) {
     socket.on('setup', (userId) => {
       if (userId) {
         socket.userId = userId;
-        onlineUsers.set(userId, socket.id);
-        console.log(`User ${userId} registered with socket ${socket.id}`);
+        if (!onlineUsers.has(userId)) {
+          onlineUsers.set(userId, new Set());
+        }
+        onlineUsers.get(userId).add(socket.id);
+        console.log(`User ${userId} registered socket ${socket.id}. Active sockets: ${onlineUsers.get(userId).size}`);
         // Broadcast online users
         io.emit('get-online-users', Array.from(onlineUsers.keys()));
       }
@@ -55,9 +64,9 @@ function initializeSocket(io) {
     
     // Caller initiates call
     socket.on('call-user', ({ userToCall, signalData, from, type }) => {
-      const recipientSocketId = onlineUsers.get(userToCall);
+      const recipientSocketId = getPrimarySocketId(userToCall);
       if (recipientSocketId) {
-        console.log(`Call offer: user ${from} calling ${userToCall} (${type})`);
+        console.log(`Call offer: user ${from.username} calling ${userToCall} (${type})`);
         io.to(recipientSocketId).emit('incoming-call', {
           from,
           signalData, // This is the WebRTC offer SDP
@@ -70,7 +79,7 @@ function initializeSocket(io) {
 
     // Receiver accepts call
     socket.on('accept-call', ({ to, signalData }) => {
-      const callerSocketId = onlineUsers.get(to);
+      const callerSocketId = getPrimarySocketId(to);
       if (callerSocketId) {
         console.log(`Call accepted by ${socket.userId} for ${to}`);
         // Track the active call session
@@ -86,7 +95,7 @@ function initializeSocket(io) {
 
     // Receiver rejects call
     socket.on('reject-call', ({ to }) => {
-      const callerSocketId = onlineUsers.get(to);
+      const callerSocketId = getPrimarySocketId(to);
       if (callerSocketId) {
         console.log(`Call rejected by ${socket.userId} for ${to}`);
         io.to(callerSocketId).emit('call-rejected');
@@ -95,7 +104,7 @@ function initializeSocket(io) {
 
     // Relay WebRTC ICE candidates
     socket.on('ice-candidate', ({ to, candidate }) => {
-      const peerSocketId = onlineUsers.get(to);
+      const peerSocketId = getPrimarySocketId(to);
       if (peerSocketId) {
         io.to(peerSocketId).emit('ice-candidate', { candidate });
       }
@@ -103,7 +112,7 @@ function initializeSocket(io) {
 
     // Direct WebRTC SDP Offer exchange (alternative flow/renegotiation)
     socket.on('webrtc-offer', ({ to, offer }) => {
-      const peerSocketId = onlineUsers.get(to);
+      const peerSocketId = getPrimarySocketId(to);
       if (peerSocketId) {
         io.to(peerSocketId).emit('webrtc-offer', { offer });
       }
@@ -111,7 +120,7 @@ function initializeSocket(io) {
 
     // Direct WebRTC SDP Answer exchange (alternative flow/renegotiation)
     socket.on('webrtc-answer', ({ to, answer }) => {
-      const peerSocketId = onlineUsers.get(to);
+      const peerSocketId = getPrimarySocketId(to);
       if (peerSocketId) {
         io.to(peerSocketId).emit('webrtc-answer', { answer });
       }
@@ -127,7 +136,7 @@ function initializeSocket(io) {
         activeCalls.delete(to);
       }
       
-      const peerSocketId = onlineUsers.get(to);
+      const peerSocketId = getPrimarySocketId(to);
       if (peerSocketId) {
         io.to(peerSocketId).emit('call-ended');
       }
@@ -139,23 +148,32 @@ function initializeSocket(io) {
       
       if (socket.userId) {
         const userId = socket.userId;
-        onlineUsers.delete(userId);
+        const socketIds = onlineUsers.get(userId);
         
-        // Broadcast updated online list
-        io.emit('get-online-users', Array.from(onlineUsers.keys()));
+        if (socketIds) {
+          socketIds.delete(socket.id);
+          if (socketIds.size === 0) {
+            onlineUsers.delete(userId);
+            console.log(`User ${userId} is now completely offline.`);
+            // Broadcast updated online list
+            io.emit('get-online-users', Array.from(onlineUsers.keys()));
 
-        // Call signaling cleanup: if they were in an active call, notify the other peer
-        if (activeCalls.has(userId)) {
-          const partnerId = activeCalls.get(userId);
-          const partnerSocketId = onlineUsers.get(partnerId);
-          
-          if (partnerSocketId) {
-            console.log(`User ${userId} disconnected during active call. Ending call for ${partnerId}`);
-            io.to(partnerSocketId).emit('call-ended');
+            // Call signaling cleanup: if they were in an active call, notify the other peer
+            if (activeCalls.has(userId)) {
+              const partnerId = activeCalls.get(userId);
+              const partnerSocketId = getPrimarySocketId(partnerId);
+              
+              if (partnerSocketId) {
+                console.log(`User ${userId} disconnected during active call. Ending call for ${partnerId}`);
+                io.to(partnerSocketId).emit('call-ended');
+              }
+              
+              activeCalls.delete(userId);
+              activeCalls.delete(partnerId);
+            }
+          } else {
+            console.log(`User ${userId} disconnected one tab. Remaining tabs: ${socketIds.size}`);
           }
-          
-          activeCalls.delete(userId);
-          activeCalls.delete(partnerId);
         }
       }
     });

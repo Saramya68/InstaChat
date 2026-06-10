@@ -82,7 +82,11 @@ const ChatArea = ({ activeChat }) => {
     // Receive message
     const handleMessageReceived = (msg) => {
       if (msg.conversationId === conversationId) {
-        setMessages(prev => [...prev, msg]);
+        setMessages(prev => {
+          // Prevent double message rendering by checking ID
+          if (prev.some(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
       }
     };
 
@@ -197,15 +201,14 @@ const ChatArea = ({ activeChat }) => {
               },
               body: JSON.stringify({
                 conversationId,
-                content: aiData.reply
+                content: aiData.reply,
+                senderId: 'gemini-bot',
+                senderName: 'AI Assistant'
               })
             });
 
             if (aiSaveRes.ok) {
               const savedAiMsg = await aiSaveRes.json();
-              // Inject synthetic ID details
-              savedAiMsg.senderId = 'gemini-bot';
-              savedAiMsg.senderName = 'AI Assistant';
               setMessages(prev => [...prev, savedAiMsg]);
             }
           } else {
@@ -342,7 +345,7 @@ const ChatArea = ({ activeChat }) => {
         )}
 
         {/* Typing Bubble */}
-        {isTyping && (
+        {isTyping && (activeChat.isAI || isOnline) && (
           <div className="typing-indicator-wrapper">
             <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', marginRight: '4px' }}>
               {activeChat.isAI ? 'AI thinking' : 'Typing'}
