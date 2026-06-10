@@ -20,12 +20,9 @@ export const SocketProvider = ({ children }) => {
 
     const socketUrl = window.location.hostname === 'localhost' 
       ? 'http://localhost:5000' 
-      : `${window.location.protocol}//${window.location.hostname}:5000`;
+      : 'https://instachat-backend-u091.onrender.com';
 
-    const newSocket = io(socketUrl, {
-      transports: ['websocket'],
-      upgrade: false
-    });
+    const newSocket = io(socketUrl);
 
     setSocket(newSocket);
 

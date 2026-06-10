@@ -37,8 +37,18 @@ function initializeSocket(io) {
       // Emit to the room (which contains all members in a group, or is the conversationId itself)
       socket.to(conversationId).emit('message-received', message);
       
-      // If it's a 1-on-1 chat, we can also push directly to the recipient if they aren't in a joint room yet
-      // (Conversation ID for 1-on-1 is often composed of the two user IDs or is a database ID)
+      // If it's a 1-on-1 DM, also push directly to the recipient's personal socket
+      // to ensure delivery even if they haven't manually joined the conversation room.
+      if (conversationId.includes('_')) {
+        const parts = conversationId.split('_');
+        const recipientId = parts.find(id => id !== senderId);
+        if (recipientId) {
+          const recipientSocketId = onlineUsers.get(recipientId);
+          if (recipientSocketId) {
+            io.to(recipientSocketId).emit('message-received', message);
+          }
+        }
+      }
     });
 
     // 5. WebRTC Calling Signaling Events
