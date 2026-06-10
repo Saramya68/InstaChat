@@ -140,7 +140,7 @@ const AuthScreen = () => {
               id="username"
               type="text" 
               className="form-input" 
-              placeholder="e.g. viswa" 
+              placeholder="Username" 
               value={username}
               onChange={e => setUsername(e.target.value)}
               disabled={loading}
