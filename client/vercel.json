@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://instachat-backend.onrender.com/api/:path*"
+      "destination": "https://instachat-backend-u091.onrender.com/api/:path*"
     }
   ]
 }
