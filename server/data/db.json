@@ -1,0 +1,48 @@
+{
+  "users": [
+    {
+      "id": "xqyhdrf",
+      "username": "viswa",
+      "passwordHash": "$2a$10$azjR6mR0wwVhrFpSbd2nM.P6s3G1wNlyagqOrtlfbJyhZ/bfRpFTi",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=viswa",
+      "createdAt": "2026-06-10T16:22:21.721Z"
+    },
+    {
+      "id": "j3phw7a",
+      "username": "saramya",
+      "passwordHash": "$2a$10$zsryOLo9TwV6ioqkbX0.VeGkHQ/9yciZTE5GC.LJusaJGbFTnkWdS",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=saramya",
+      "createdAt": "2026-06-10T16:23:16.591Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "zvmgxnv",
+      "conversationId": "j3phw7a_xqyhdrf",
+      "senderId": "xqyhdrf",
+      "senderName": "viswa",
+      "content": "he;lloo",
+      "createdAt": "2026-06-10T16:23:52.850Z"
+    },
+    {
+      "id": "8nt9qkc",
+      "conversationId": "group_yel6s9c",
+      "senderId": "j3phw7a",
+      "senderName": "saramya",
+      "content": "hello",
+      "createdAt": "2026-06-10T16:24:08.490Z"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_yel6s9c",
+      "name": "lovers",
+      "creatorId": "j3phw7a",
+      "memberIds": [
+        "j3phw7a",
+        "xqyhdrf"
+      ],
+      "createdAt": "2026-06-10T16:24:04.061Z"
+    }
+  ]
+}
